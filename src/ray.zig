@@ -14,5 +14,4 @@ pub const Ray = struct {
     pub fn at(self: *const Self, t: f32) Vec3 {
         return self.origin + scale(t, self.direction);
     }
-    
 };
