@@ -93,23 +93,27 @@ pub const Tup3 = struct {
     }
 
     pub fn len(v: Tup3) f32 {
-        return @sqrt(len_sq(v));
+        return @sqrt(lensq(v));
     }
 
-    pub fn len_sq(v: Tup3) f32 {
+    pub fn lensq(v: Tup3) f32 {
         return dot(v, v);
     }
 
-    pub fn rand(randgen: std.rand.Random) Tup3 { 
+    pub fn rand() Tup3 { 
         return Tup3 {
-            .x = common.randf(f32, randgen),
-            .y = common.randf(f32, randgen),
-            .z = common.randf(f32, randgen),
+            .x = common.randf(),
+            .y = common.randf(),
+            .z = common.randf(),
         };
     }
 
-    pub fn randr(lo: f32, hi: f32, randgen: std.rand.Random) Tup3 {
-        return common.randrf(f32, lo, hi, randgen);
+    pub fn randr(lo: f32, hi: f32) Tup3 {
+        return Tup3 {
+            .x = common.randrf(lo, hi),
+            .y = common.randrf(lo, hi),
+            .z = common.randrf(lo, hi),
+        };
     }
 
     pub fn sub(a: Tup3, b: Tup3) Tup3 {
@@ -121,6 +125,27 @@ pub const Tup3 = struct {
     }
 
     pub fn unit(v: Tup3) Tup3 {
-        return v.div(len(v)); 
+        return v.div(v.len()); 
     }
 };
+
+pub fn rand_ius() Vec3 {
+    while(true) {
+        const p = Vec3.randr(-1, 1);
+        if (p.lensq() >= 1) continue;
+        return p;
+    }
+}
+
+pub fn rand_uv() Vec3 {
+    return rand_ius().unit();
+}
+
+pub fn rand_ihemi(normal: Vec3) Vec3 {
+    const ius = rand_ius();
+    if (ius.dot(normal) > 0.0) {
+        return ius;
+    } else {
+        return ius.neg();
+    }
+}

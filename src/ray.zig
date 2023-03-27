@@ -7,8 +7,11 @@ pub const Ray = struct {
     origin: Point3,
     direction: Vec3,
 
-    const Self = @This();
-    pub fn at(self: *const Self, t: f32) Point3 {
+    pub fn new(origin: Point3, direction: Vec3) Ray {
+        return .{.origin = origin, .direction = direction};
+    }
+
+    pub fn at(self: Ray, t: f32) Vec3 {
         return self.origin.add(self.direction.mul(t));
     }
 };
