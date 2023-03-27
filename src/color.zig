@@ -1,18 +1,22 @@
-const vec3 = @import("vec3.zig");
+const common = @import("common.zig");
+const tup3 = @import("tup3.zig");
 
-const Color = vec3.Color;
+const Color = tup3.Color;
 
-pub fn write_color(comptime WriterType: type, out: WriterType, pixel_color: Color) !void {
-    var r = pixel_color[0];
-    var g = pixel_color[1];
-    var b = pixel_color[2];
+pub fn write_color(comptime WriterType: type, out: WriterType, pixel_color: Color, samples_per_pixel: i32) !void {
+    var r = pixel_color.x;
+    var g = pixel_color.y;
+    var b = pixel_color.z;
 
-    // Write the translated [0,255] value of each color component.
-    const mul: f32 = 255.999;
+    // Divide the color by the number of samples.
+    const scale = 1.0 / @intToFloat(f32, samples_per_pixel);
+    r *= scale;
+    g *= scale;
+    b *= scale;
 
-    const ir: u32 = @floatToInt(u32, mul * r);
-    const ig: u32 = @floatToInt(u32, mul * g);
-    const ib: u32 = @floatToInt(u32, mul * b);
+    const ir: u32 = @floatToInt(u32, 256 * common.clamp(f32, r, 0.0, 0.999));
+    const ig: u32 = @floatToInt(u32, 256 * common.clamp(f32, g, 0.0, 0.999));
+    const ib: u32 = @floatToInt(u32, 256 * common.clamp(f32, b, 0.0, 0.999));
     
     try out.print("{} {} {}\n", .{ ir, ig, ib });
 }

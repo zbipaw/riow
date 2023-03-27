@@ -1,12 +1,12 @@
 const std = @import("std");
 
 const ray = @import("ray.zig");
-const vec3 = @import("vec3.zig");
+const tup3 = @import("tup3.zig");
 
-const Color = vec3.Color;
-const Point3 = vec3.Point3;
+const Color = tup3.Color;
+const Point3 = tup3.Point3;
 const Ray = ray.Ray;
-const Vec3 = vec3.Point3;
+const Vec3 = tup3.Point3;
 
 pub const Hittable = struct {
     hitFn: *const fn (self: *const Hittable, r: *Ray, t_min: f32, t_max: f32, rec: *HitRecord) bool,
@@ -58,8 +58,8 @@ pub const HitRecord = struct {
 
     const Self = @This();
     pub fn set_face_normal(self: *Self, r: *const Ray, outward_normal: Vec3) void {
-        self.front_face = vec3.dot(r.direction, outward_normal) < 0;
-        self.normal = if (self.front_face) outward_normal else -outward_normal;
+        self.front_face = r.direction.dot(outward_normal) < 0;
+        self.normal = if (self.front_face) outward_normal else outward_normal.neg();
     }
 };
 
@@ -77,13 +77,13 @@ pub const Sphere = struct {
         };
     }
 
-    pub fn hit(hittable: *const Hittable, r: *const Ray, t_min: f32, t_max: f32, rec: *HitRecord) bool {
+    pub fn hit(hittable: *const Hittable, r: *const Ray, t_min: f32, t_max: f32, hitrec: *HitRecord) bool {
         const self = @fieldParentPtr(Sphere, "hittable", hittable);
 
-        const oc = r.origin - self.center;
-        const a = vec3.length_squared(r.direction);
-        const half_b = vec3.dot(oc, r.direction);
-        const c = vec3.length_squared(oc) - std.math.pow(f32, self.radius, 2);
+        const oc = r.origin.sub(self.center);
+        const a = r.direction.len_sq();
+        const half_b = oc.dot(r.direction);
+        const c = oc.len_sq() - std.math.pow(f32, self.radius, 2);
 
         const discriminant = std.math.pow(f32, half_b, 2) - a * c;
         if (discriminant < 0) return false;
@@ -96,10 +96,10 @@ pub const Sphere = struct {
             if (root < t_min or t_max < root) return false;
         }
 
-        rec.t = root;
-        rec.p = r.at(rec.t);
-        const outward_normal = vec3.scale(1 / self.radius, rec.p - self.center);
-        rec.set_face_normal(r, outward_normal);
+        hitrec.t = root;
+        hitrec.p = r.at(hitrec.t);
+        const outward_normal = (hitrec.p.sub(self.center)).div(self.radius);
+        hitrec.set_face_normal(r, outward_normal);
 
         return true;
     }
