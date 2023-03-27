@@ -1,5 +1,5 @@
-const tup3 = @import("tup3.zig");
 const ray = @import("ray.zig");
+const tup3 = @import("tup3.zig");
 
 const Point3 = tup3.Point3;
 const Ray = ray.Ray;
@@ -12,7 +12,8 @@ pub const Camera = struct {
     vertical: Vec3,
 
     const Self = @This();
-    pub fn init(origin: Point3, focal_length: Vec3, viewport_height: f32, viewport_width: f32) Self {
+    pub fn init(origin: Point3, viewport_height: f32, viewport_width: f32) Self {
+        const _focal = Vec3.vec(0, 0, 1);
         const _horizontal = Vec3.vec(viewport_width, 0, 0);
         const _vertical = Vec3.vec(0, viewport_height, 0);
         return .{
@@ -23,20 +24,18 @@ pub const Camera = struct {
                 origin
                 .sub(_horizontal.mul(0.5))
                 .sub(_vertical.mul(0.5))
-                .sub(focal_length)
+                .sub(_focal)
             )
         };       
     }
 
     pub fn get_ray(self: *const Self, u: f32, v: f32) Ray {
-        return .{
-            .origin = self.origin,
-            .direction = (
-                self.lower_left_corner
+        return Ray.new(
+            self.origin,
+            self.lower_left_corner
                 .add(self.horizontal.mul(u))
                 .add(self.vertical.mul(v))
                 .sub(self.origin)
-            )
-        };
+        );
     }
 };

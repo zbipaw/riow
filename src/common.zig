@@ -11,11 +11,9 @@ pub fn deg2rad(deg: f32) f32 {
     return deg * pi / 180.0;
 }
 
+var prng = std.rand.DefaultPrng.init(0);
 pub fn randf() f32 {
-    const seed: u64 = 0x000001;
-    var prng = std.rand.DefaultPrng.init(seed);
-    var rand = prng.random();
-    return rand.float(f32);
+    return prng.random().float(f32);
 }
 
 pub fn randrf(lo: f32, hi: f32) f32 {

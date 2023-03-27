@@ -3,6 +3,7 @@ const std = @import("std");
 const camera = @import("camera.zig");
 const color = @import("color.zig");
 const common = @import("common.zig");
+const material = @import("material.zig");
 const ray = @import("ray.zig");
 const objects = @import("objects.zig");
 const tup3 = @import("tup3.zig");
@@ -13,36 +14,52 @@ const Color = tup3.Color;
 const HitRecord = objects.HitRecord;
 const Hittable = objects.Hittable;
 const HittableList = objects.HittableList;
+const Lambertian = material.Lambertian;
+const Metal = material.Metal;
 const Point3 = tup3.Point3;
 const Ray = ray.Ray;
 const Sphere = objects.Sphere;
 const Vec3 = tup3.Vec3;
 
-fn two_spheres(allocator: Allocator) !HittableList {
-    const sphere1 = try allocator.create(Sphere);
-    sphere1.* = Sphere.init(Point3.pos(0, 0, -1), 0.5);
-    const sphere2 = try allocator.create(Sphere);
-    sphere2.* = Sphere.init(Point3.pos(0, -100.5, -1), 100);
-
+fn four_spheres(allocator: Allocator) !HittableList {
     var world = HittableList.init(allocator);
+
+    const mat1 = try allocator.create(Lambertian);
+    mat1.* = Lambertian.init(Color.rgb(0.8, 0.8, 0.0));
+    const sphere1 = try allocator.create(Sphere);
+    sphere1.* = Sphere.init(Point3.pos(0, -100.5, -1), 100.0, &mat1.material);
     try world.add(&sphere1.hittable);
+
+    const mat2 = try allocator.create(Lambertian);
+    mat2.* = Lambertian.init(Color.rgb(0.7, 0.3, 0.3));
+    const sphere2 = try allocator.create(Sphere);
+    sphere2.* = Sphere.init(Point3.pos(0, 0, -1), 0.5, &mat2.material);
     try world.add(&sphere2.hittable);
+
+    const mat3 = try allocator.create(Metal);
+    mat3.* = Metal.init(Color.rgb(0.8, 0.8, 0.8), 0.3);
+    const sphere3 = try allocator.create(Sphere);
+    sphere3.* = Sphere.init(Point3.pos(-1, 0, -1), 0.5, &mat3.material);
+    try world.add(&sphere3.hittable);
+
+    const mat4 = try allocator.create(Metal);
+    mat4.* = Metal.init(Color.rgb(0.8, 0.6, 0.2), 1.0);
+    const sphere4 = try allocator.create(Sphere);
+    sphere4.* = Sphere.init(Point3.pos(1, 0, -1), 0.5, &mat4.material);
+    try world.add(&sphere4.hittable);
+
     return world;
 }
 
 fn ray_color(r: Ray, world: *Hittable, depth: u32) Color {
-    var hitrec: HitRecord = undefined;
-
     // If we've exceeded the ray bounce limit, no more light is gathered.
     if (depth <= 0) return Color.rgb(0.0, 0.0, 0.0);
     
-    if (world.hit(r, common.e, common.inf, &hitrec)) {
-        const target = hitrec.p.add(tup3.rand_ihemi(hitrec.normal));
-        return ray_color(
-            Ray.new(hitrec.p, target.sub(hitrec.p)),
-            world,
-            depth - 1
-        ).mul(0.5);
+    if (world.hit(r, common.e, common.inf)) |record| {
+        if (record.mat_ptr.scatter(r, record)) |mat| {
+            return ray_color(mat.ray, world, depth - 1).mulv(mat.attenuation);
+        }
+        return Color.rgb(0, 0, 0);
     }
     
     const unit_direction = r.direction.unit();
@@ -55,7 +72,6 @@ fn ray_color(r: Ray, world: *Hittable, depth: u32) Color {
 }
 
 pub fn main() !void {
-
     //allocator
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -72,20 +88,18 @@ pub fn main() !void {
     const aspect_ratio: f32 = 16.0 / 9.0;
     const image_width: u32 = 320;
     const image_height: u32 = @floatToInt(u32, @as(f32, image_width) / aspect_ratio);
-    const max_depth: u32 = 50; 
-    const samples_per_pixel: u32 = 100;
+    const max_depth: u32 = 48; 
+    const samples_per_pixel: u32 = 96;
 
     //World
-    var world = try two_spheres(allocator);
-    
+    var world = try four_spheres(allocator);
+
     //Camera
     const cam_pos = Point3.pos(0.0, 0.0, 0.0);
-    const cam_foc = Point3.pos(0.0, 0.0, 1.0);
     const cam_vh = 2.0;
     const cam_vw = aspect_ratio * cam_vh;
     const cam = Camera.init(
         cam_pos,
-        cam_foc,
         cam_vh,
         cam_vw
     );

@@ -116,6 +116,12 @@ pub const Tup3 = struct {
         };
     }
 
+    pub fn small(self: Vec3) bool {
+        // Return true if the vector is close to zero in all dimensions.
+        const e = 1e-8;
+        return @fabs(self.x) < e and @fabs(self.y) < e and @fabs(self.z) < e;
+    }
+
     pub fn sub(a: Tup3, b: Tup3) Tup3 {
         return Tup3 {
             .x = a.x - b.x,
@@ -148,4 +154,8 @@ pub fn rand_ihemi(normal: Vec3) Vec3 {
     } else {
         return ius.neg();
     }
+}
+
+pub fn reflect(v: Vec3, n: Vec3) Vec3 {
+    return v.sub(n.mul(2 * v.dot(n)));
 }
