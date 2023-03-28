@@ -11,6 +11,7 @@ const tup3 = @import("tup3.zig");
 const Allocator = std.mem.Allocator;
 const Camera = camera.Camera;
 const Color = tup3.Color;
+const Dielectric = material.Dielectric;
 const HitRecord = objects.HitRecord;
 const Hittable = objects.Hittable;
 const HittableList = objects.HittableList;
@@ -31,19 +32,23 @@ fn four_spheres(allocator: Allocator) !HittableList {
     try world.add(&sphere1.hittable);
 
     const mat2 = try allocator.create(Lambertian);
-    mat2.* = Lambertian.init(Color.rgb(0.7, 0.3, 0.3));
+    mat2.* = Lambertian.init(Color.rgb(0.1, 0.2, 0.5));
     const sphere2 = try allocator.create(Sphere);
     sphere2.* = Sphere.init(Point3.pos(0, 0, -1), 0.5, &mat2.material);
     try world.add(&sphere2.hittable);
 
-    const mat3 = try allocator.create(Metal);
-    mat3.* = Metal.init(Color.rgb(0.8, 0.8, 0.8), 0.3);
+    const mat3 = try allocator.create(Dielectric);
+    mat3.* = Dielectric.init(1.5);
     const sphere3 = try allocator.create(Sphere);
     sphere3.* = Sphere.init(Point3.pos(-1, 0, -1), 0.5, &mat3.material);
     try world.add(&sphere3.hittable);
 
+    const sphere5 = try allocator.create(Sphere);
+    sphere5.* = Sphere.init(Point3.pos(-1, 0, -1), -0.4, &mat3.material);
+    try world.add(&sphere5.hittable);
+
     const mat4 = try allocator.create(Metal);
-    mat4.* = Metal.init(Color.rgb(0.8, 0.6, 0.2), 1.0);
+    mat4.* = Metal.init(Color.rgb(0.8, 0.6, 0.2), 0.0);
     const sphere4 = try allocator.create(Sphere);
     sphere4.* = Sphere.init(Point3.pos(1, 0, -1), 0.5, &mat4.material);
     try world.add(&sphere4.hittable);

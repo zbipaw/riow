@@ -159,3 +159,10 @@ pub fn rand_ihemi(normal: Vec3) Vec3 {
 pub fn reflect(v: Vec3, n: Vec3) Vec3 {
     return v.sub(n.mul(2 * v.dot(n)));
 }
+
+pub fn refract(uv: Vec3, n: Vec3, etai_over_etat: f32) Vec3 {
+    const cost = std.math.min(uv.neg().dot(n), 1.0);
+    const r_out_perp = uv.add(n.mul(cost)).mul(etai_over_etat);
+    const r_out_parallel = n.mul(-@sqrt(@fabs(1.0 - r_out_perp.lensq())));
+    return r_out_perp.add(r_out_parallel);
+}
