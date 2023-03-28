@@ -12,10 +12,10 @@ const Ray = ray.Ray;
 const Vec3 = tup3.Point3;
 
 pub const Hittable = struct {
-    hitFn: *const fn (self: *Hittable, r: Ray, t_min: f32, t_max: f32) ?HitRecord,
+    hitFn: *const fn (self: *Hittable, r: Ray, t_min: f32, t_max: f32, hitrec: *HitRecord) bool,
 
-    pub fn hit(self: *Hittable, r: Ray, t_min: f32, t_max: f32) ?HitRecord {
-        return self.hitFn(self, r, t_min, t_max);
+    pub fn hit(self: *Hittable, r: Ray, t_min: f32, t_max: f32, hitrec: *HitRecord) bool {
+        return self.hitFn(self, r, t_min, t_max, hitrec);
     }
 };
 
@@ -23,37 +23,36 @@ pub const HittableList = struct {
     hittable: Hittable,
     objects: std.ArrayList(*Hittable),
   
-    const Self = @This();
-    pub fn init(allocator: Allocator) Self {
-        return Self {
+    pub fn init(allocator: Allocator) HittableList {
+        return HittableList {
             .hittable = Hittable { .hitFn = hit },
             .objects = std.ArrayList(*Hittable).init(allocator),
         };
     }
 
-    pub fn deinit(self: *Self) void {
+    pub fn deinit(self: *HittableList) void {
         self.objects.deinit();
     }
 
-    pub fn add(self: *Self, obj: *Hittable) !void {
+    pub fn add(self: *HittableList, obj: *Hittable) !void {
         try self.objects.append(obj);
     }
 
-    fn hit(hittable: *Hittable, r: Ray, t_min: f32, t_max: f32) ?HitRecord {
-        const self = @fieldParentPtr(Self, "hittable", hittable);
+    fn hit(hittable: *Hittable, r: Ray, t_min: f32, t_max: f32, hitrec: *HitRecord) bool {
+        const self = @fieldParentPtr(HittableList, "hittable", hittable);
 
-        var closest_so_far: f32 = t_max;
+        var temp_rec: HitRecord = undefined;
         var hit_anything = false;
-        var hitrec: ?HitRecord = null;
+        var closest_so_far = t_max;
 
         for (self.objects.items) |object| {
-            if (object.hit(r, t_min, closest_so_far)) |rec| {
-                closest_so_far = rec.t;
+            if (object.hit(r, t_min, closest_so_far, &temp_rec)) {
                 hit_anything = true;
-                hitrec = rec;
+                closest_so_far = temp_rec.t;
+                hitrec.* = temp_rec;
             }
         }
-        return if (hit_anything) hitrec else null;
+        return hit_anything;
     }
 };
 
@@ -63,17 +62,6 @@ pub const HitRecord = struct {
     normal: Vec3,
     p: Point3,
     t: f32,
-
-    pub fn new(r: Ray, outward_normal: Vec3, root: f32) HitRecord {
-        const p = r.at(root);
-        const front_face = r.direction.dot(outward_normal) < 0;
-        return HitRecord{
-            .p = p,
-            .normal = if (front_face) outward_normal else outward_normal.neg(),
-            .t = root,
-            .front_face = front_face,
-        };
-    }
 };
 
 pub const Sphere = struct {
@@ -91,7 +79,7 @@ pub const Sphere = struct {
         };
     }
 
-    pub fn hit(hittable: *const Hittable, r: Ray, t_min: f32, t_max: f32) ?HitRecord {
+    pub fn hit(hittable: *Hittable, r: Ray, t_min: f32, t_max: f32, hitrec: *HitRecord) bool {
         const self = @fieldParentPtr(Sphere, "hittable", hittable);
 
         const oc = r.origin.sub(self.center);
@@ -100,27 +88,26 @@ pub const Sphere = struct {
         const c = oc.lensq() - std.math.pow(f32, self.radius, 2);
 
         const discriminant = std.math.pow(f32, half_b, 2) - a * c;
-        if (discriminant < 0) return null;
+        if (discriminant < 0) return false;
         const sqrtd = @sqrt(discriminant);
 
         // Find the nearest root that lies in the acceptable range.
         var root: f32 = (-half_b - sqrtd) / a;
         if (root < t_min or t_max < root) {
             root = (-half_b + sqrtd) / a;
-            if (root < t_min or t_max < root) return null;
+            if (root < t_min or t_max < root) return false;
         }
 
         const p = r.at(root);
         const outward_normal = (p.sub(self.center)).div(self.radius);
         const front_face = r.direction.dot(outward_normal) < 0;
 
-        var hitrec: HitRecord = undefined;
         hitrec.t = root;
         hitrec.p = p;
         hitrec.normal = if (front_face) outward_normal else outward_normal.neg();
         hitrec.front_face = front_face;
         hitrec.mat_ptr = self.mat_ptr;
 
-        return hitrec;
+        return true;
     }
 };

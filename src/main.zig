@@ -52,14 +52,16 @@ fn four_spheres(allocator: Allocator) !HittableList {
 }
 
 fn ray_color(r: Ray, world: *Hittable, depth: u32) Color {
+    var hitrec: HitRecord = undefined;
+
     // If we've exceeded the ray bounce limit, no more light is gathered.
     if (depth <= 0) return Color.rgb(0.0, 0.0, 0.0);
     
-    if (world.hit(r, common.e, common.inf)) |record| {
-        if (record.mat_ptr.scatter(r, record)) |mat| {
-            return ray_color(mat.ray, world, depth - 1).mulv(mat.attenuation);
-        }
-        return Color.rgb(0, 0, 0);
+    if (world.hit(r, common.e, common.inf, &hitrec)) {
+        var scattered: Ray = undefined;
+        var attenuation: Color = undefined;
+        if (hitrec.mat_ptr.scatter(r, hitrec, &attenuation, &scattered))
+            return attenuation.mulv(ray_color(scattered, world, depth - 1));
     }
     
     const unit_direction = r.direction.unit();

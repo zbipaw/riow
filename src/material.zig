@@ -12,16 +12,11 @@ const Ray = ray.Ray;
 const Vec3 = tup3.Point3;
 
 pub const Material = struct {
-    scatterFn: *const fn (self: *Material, r: Ray, hitrec: HitRecord) ?MaterialRecord,
+    scatterFn: *const fn (self: *Material, r: Ray, hitrec: HitRecord, attenuation: *Color, scattered: *Ray) bool,
 
-    pub fn scatter(self: *Material, r: Ray, hitrec: HitRecord) ?MaterialRecord {
-        return self.scatterFn(self, r, hitrec);
+    pub fn scatter(self: *Material, r: Ray, hitrec: HitRecord, attenuation: *Color, scattered: *Ray) bool {
+        return self.scatterFn(self, r, hitrec, attenuation, scattered);
     }
-};
-
-pub const MaterialRecord = struct {
-    ray: Ray,
-    attenuation: Color,
 };
 
 pub const Lambertian = struct {
@@ -35,7 +30,7 @@ pub const Lambertian = struct {
         };
     }
 
-    pub fn scatter(material: *Material, r: Ray, hitrec: HitRecord) ?MaterialRecord {
+    pub fn scatter(material: *Material, r: Ray, hitrec: HitRecord, attenuation: *Color, scattered: *Ray) bool {
         _ = r;
         const self = @fieldParentPtr(Lambertian, "material", material);
 
@@ -43,11 +38,9 @@ pub const Lambertian = struct {
         // Catch degenerate scatter direction
         if (scatter_direction.small()) scatter_direction = hitrec.normal;
 
-        const new_ray = Ray.new(hitrec.p, scatter_direction);
-        return MaterialRecord {
-            .ray = new_ray,
-            .attenuation = self.albedo,
-        };
+        scattered.* = Ray.new(hitrec.p, scatter_direction);
+        attenuation.* = self.albedo;
+        return true;
     }
 };
 
@@ -64,16 +57,15 @@ pub const Metal = struct {
         };
     }
 
-    pub fn scatter(material: *Material, r: Ray, hitrec: HitRecord) ?MaterialRecord {
+    pub fn scatter(material: *Material, r: Ray, hitrec: HitRecord, attenuation: *Color, scattered: *Ray) bool {
         const self = @fieldParentPtr(Metal, "material", material);
 
         const reflected = tup3.reflect(r.direction.unit(), hitrec.normal);
-        const fuzzed = reflected.add(tup3.rand_ius().mul(self.fuzz));
+        const fuzzed = reflected.add(tup3.rand_ihemi(hitrec.normal).mul(self.fuzz));
 
-        const new_ray = Ray.new(hitrec.p, fuzzed);
-        return if (fuzzed.dot(hitrec.normal) > 0) MaterialRecord {
-            .ray = new_ray,
-            .attenuation = self.albedo,
-        } else null;
+        scattered.* = Ray.new(hitrec.p, fuzzed);
+        attenuation.* = self.albedo;
+
+        return scattered.direction.dot(hitrec.normal) > 0;
     }
 };
