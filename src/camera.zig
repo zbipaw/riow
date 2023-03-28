@@ -1,3 +1,5 @@
+const std = @import("std");
+const common = @import("common.zig");
 const ray = @import("ray.zig");
 const tup3 = @import("tup3.zig");
 
@@ -12,29 +14,40 @@ pub const Camera = struct {
     vertical: Vec3,
 
     const Self = @This();
-    pub fn init(origin: Point3, viewport_height: f32, viewport_width: f32) Self {
-        const _focal = Vec3.vec(0, 0, 1);
-        const _horizontal = Vec3.vec(viewport_width, 0, 0);
-        const _vertical = Vec3.vec(0, viewport_height, 0);
+    pub fn init(lookfrom: Point3, lookat: Point3, vup: Vec3, aspect_ratio: f32, vfov: f32) Self {
+        const _theta = common.deg2rad(vfov);
+
+        const _h = @tan(_theta / 2);
+        const _viewport_height = 2.0 * _h;
+        const _viewport_width = aspect_ratio * _viewport_height;
+
+        const _w = lookfrom.sub(lookat).unit();
+        const _u = vup.cross(_w).unit();
+        const _v = _w.cross(_u);
+
+        const _origin = lookfrom;
+        const _horizontal = Vec3.vec(_viewport_width, 0, 0);
+        const _vertical = Vec3.vec(0, _viewport_height, 0);
+
         return .{
-            .origin = origin,
-            .horizontal = _horizontal,
-            .vertical = _vertical,
+            .origin = _origin,
+            .horizontal = _u.mul(_viewport_width),
+            .vertical = _v.mul(_viewport_height),
             .lower_left_corner = (
-                origin
+                _origin
                 .sub(_horizontal.mul(0.5))
                 .sub(_vertical.mul(0.5))
-                .sub(_focal)
+                .sub(_w)
             )
         };       
     }
 
-    pub fn get_ray(self: *const Self, u: f32, v: f32) Ray {
+    pub fn get_ray(self: *const Self, s: f32, t: f32) Ray {
         return Ray.new(
             self.origin,
             self.lower_left_corner
-                .add(self.horizontal.mul(u))
-                .add(self.vertical.mul(v))
+                .add(self.horizontal.mul(s))
+                .add(self.vertical.mul(t))
                 .sub(self.origin)
         );
     }

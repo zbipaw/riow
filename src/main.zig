@@ -102,13 +102,17 @@ pub fn main() !void {
     var world = try four_spheres(allocator);
 
     //Camera
-    const cam_pos = Point3.pos(0.0, 0.0, 0.0);
-    const cam_vh = 2.0;
-    const cam_vw = aspect_ratio * cam_vh;
+    const cam_lookfrom = Point3.pos(-1.0, 1.0, 1.0);
+    const cam_lookat = Point3.pos(0.0, 0.0, -1.0);
+    const cam_vup = Vec3.vec(0.0, 1.0, 0.0);
+    const cam_ar = 16.0 / 9.0;
+    const cam_vfov = 20.0;
     const cam = Camera.init(
-        cam_pos,
-        cam_vh,
-        cam_vw
+        cam_lookfrom,
+        cam_lookat,
+        cam_vup,
+        cam_ar,
+        cam_vfov,
     );
 
     //Render
