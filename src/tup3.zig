@@ -135,6 +135,23 @@ pub const Tup3 = struct {
     }
 };
 
+pub fn rand_idisk() Vec3 {
+    while (true) {
+        const p = Vec3.new(common.randrf(-1, 1), common.randrf(-1, 1), 0);
+        if (p.lensq() >= 1) continue;
+        return p;
+    }
+}
+
+pub fn rand_ihemi(normal: Vec3) Vec3 {
+    const ius = rand_ius();
+    if (ius.dot(normal) > 0.0) {
+        return ius;
+    } else {
+        return ius.neg();
+    }
+}
+
 pub fn rand_ius() Vec3 {
     while(true) {
         const p = Vec3.randr(-1, 1);
@@ -145,15 +162,6 @@ pub fn rand_ius() Vec3 {
 
 pub fn rand_uv() Vec3 {
     return rand_ius().unit();
-}
-
-pub fn rand_ihemi(normal: Vec3) Vec3 {
-    const ius = rand_ius();
-    if (ius.dot(normal) > 0.0) {
-        return ius;
-    } else {
-        return ius.neg();
-    }
 }
 
 pub fn reflect(v: Vec3, n: Vec3) Vec3 {

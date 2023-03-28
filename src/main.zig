@@ -92,27 +92,31 @@ pub fn main() !void {
     const stderr = std.io.getStdErr().writer();
     
     //Image
-    const aspect_ratio: f32 = 16.0 / 9.0;
-    const image_width: u32 = 320;
+    const aspect_ratio: f32 = 3.0 / 2.0;
+    const image_width: u32 = 480;
     const image_height: u32 = @floatToInt(u32, @as(f32, image_width) / aspect_ratio);
-    const max_depth: u32 = 48; 
-    const samples_per_pixel: u32 = 96;
+    const max_depth: u32 = 64; 
+    const samples_per_pixel: u32 = 256;
 
     //World
     var world = try four_spheres(allocator);
 
     //Camera
-    const cam_lookfrom = Point3.pos(-1.0, 1.0, 1.0);
-    const cam_lookat = Point3.pos(0.0, 0.0, -1.0);
+    const cam_lookfrom = Point3.pos(13.0, 2.0, 3.0);
+    const cam_lookat = Point3.pos(0.0, 0.0, 0.0);
     const cam_vup = Vec3.vec(0.0, 1.0, 0.0);
-    const cam_ar = 16.0 / 9.0;
+    const cam_ratio = aspect_ratio;
     const cam_vfov = 20.0;
+    const cam_fnum = 0.1;
+    const cam_focdist = 10; //cam_lookfrom.sub(cam_lookat).len();
     const cam = Camera.init(
         cam_lookfrom,
         cam_lookat,
         cam_vup,
-        cam_ar,
+        cam_ratio,
         cam_vfov,
+        cam_fnum,
+        cam_focdist,
     );
 
     //Render
